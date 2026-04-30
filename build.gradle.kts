@@ -4,7 +4,7 @@ import java.util.*
 
 plugins {
     id("com.modrinth.minotaur") version "2.+"
-    id("fabric-loom")
+    id("net.fabricmc.fabric-loom") version "1.15.5"
     val kotlin_version: String by System.getProperties()
     kotlin("jvm").version(kotlin_version)
     id("maven-publish")
@@ -21,7 +21,7 @@ base {
     archivesName.set(project.property("archives_base_name") as String)
 }
 
-val targetJavaVersion = 21
+val targetJavaVersion = 25
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
     // Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
@@ -38,21 +38,20 @@ repositories {
 dependencies {
     // To change the versions see the gradle.properties file
     minecraft("com.mojang:minecraft:${project.property("minecraft_version")}")
-    mappings("net.fabricmc:yarn:${project.property("yarn_mappings")}:v2")
-    modImplementation("net.fabricmc:fabric-loader:${project.property("loader_version")}")
-    modImplementation("net.fabricmc:fabric-language-kotlin:${project.property("fabric_kotlin_version")}")
+    implementation("net.fabricmc:fabric-loader:${project.property("loader_version")}")
+    implementation("net.fabricmc:fabric-language-kotlin:${project.property("kotlin_loader_version")}")
 
     // Fabric API. This is technically optional, but you probably want it anyway.
-    modImplementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_version")}")
+    implementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_version")}")
 
-    modLocalRuntime("com.terraformersmc", "modmenu", project.property("modmenu_version") as String)
+    runtimeOnly("com.terraformersmc", "modmenu", project.property("modmenu_version") as String)
 }
 
 modrinth {
     token.set(System.getenv("MODRINTH_TOKEN")) // Remember to have the MODRINTH_TOKEN environment variable set or else this will fail - just make sure it stays private!
     projectId.set("IC5fUZ7S") // This can be the project ID or the slug. Either will work!
     versionNumber.set(modVersion) // You don't need to set this manually. Will fail if Modrinth has this version already
-    uploadFile.set(tasks.remapJar) // With Loom, this MUST be set to `remapJar` instead of `jar`!
+    uploadFile.set(tasks.jar)
     gameVersions.addAll(listOf(project.property("minecraft_version") as String)) // Must be an array, even with only one version
     dependencies {
         required.project("fabric-api")
@@ -69,9 +68,9 @@ tasks.processResources {
     filesMatching("fabric.mod.json") {
         expand(
             "version" to project.version,
-            "minecraft_version" to project.property("minecraft_version"),
-            "loader_version" to project.property("loader_version"),
-            "fabric_kotlin_version" to project.property("fabric_kotlin_version")
+            "minecraft_version" to (project.property("minecraft_version") as String),
+            "loader_version" to (project.property("loader_version") as String),
+            "kotlin_loader_version" to (project.property("kotlin_loader_version") as String)
         )
     }
 }
@@ -86,7 +85,7 @@ tasks.withType<JavaCompile>().configureEach {
 }
 
 tasks.withType<KotlinCompile>().configureEach {
-    compilerOptions.jvmTarget.set(JvmTarget.fromTarget(targetJavaVersion.toString()))
+    compilerOptions.jvmTarget.set(JvmTarget.JVM_24)
 }
 
 tasks.jar {

@@ -20,13 +20,10 @@
       "cc.modlabs.autogg.Autogg"
     ]
   },
-  "mixins": [
-    "autogg.mixins.json"
-  ],
   "depends": {
     "fabricloader": ">=${loader_version}",
-    "fabric-language-kotlin": ">=${fabric_kotlin_version}",
-    "fabric": "*",
+    "fabric-language-kotlin": ">=${kotlin_loader_version}",
+    "fabric-api": "*",
     "minecraft": "${minecraft_version}"
   }
 }

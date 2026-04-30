@@ -1,17 +1,12 @@
 package cc.modlabs.autogg
 
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft
 
 class ClientWrapper {
-    private var client: MinecraftClient? = null
-
-    init {
-        this.client = MinecraftClient.getInstance()
-    }
+    private val client: Minecraft = Minecraft.getInstance()
 
     fun getCurrentServer(): ServerConfig? {
-        if (client?.currentServerEntry == null) return null
-        val address: String = client!!.currentServerEntry!!.address
+        val address = client.currentServer?.ip ?: return null
 
         for (server in ServerConfig.entries) {
             if (address.contains(server.ip)) return server
@@ -20,6 +15,7 @@ class ClientWrapper {
     }
 
     fun sendMessage(messageToSend: String?) {
-        client!!.networkHandler!!.sendChatMessage(messageToSend)
+        if (messageToSend.isNullOrBlank()) return
+        client.player?.connection?.sendChat(messageToSend)
     }
 }
