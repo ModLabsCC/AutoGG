@@ -14,8 +14,9 @@ class ClientWrapper {
         return null
     }
 
-    fun sendMessage(messageToSend: String?) {
-        if (messageToSend.isNullOrBlank()) return
-        client.player?.connection?.sendChat(messageToSend)
+    fun sendMessage(messageToSend: String): Boolean {
+        val connection = client.player?.connection ?: return false
+        connection.sendChat(messageToSend)
+        return true
     }
 }
