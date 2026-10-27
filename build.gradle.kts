@@ -44,7 +44,9 @@ dependencies {
     // Fabric API. This is technically optional, but you probably want it anyway.
     implementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_version")}")
 
+    compileOnly("com.terraformersmc", "modmenu", project.property("modmenu_version") as String)
     runtimeOnly("com.terraformersmc", "modmenu", project.property("modmenu_version") as String)
+    testImplementation(kotlin("test-junit"))
 }
 
 modrinth {
