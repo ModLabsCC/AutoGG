@@ -4,6 +4,9 @@ class AutoGgGuard {
     private var lastEventAt: Long? = null
     private var lastChat: String? = null
 
+    fun chooseMessage(server: ServerConfig?, messages: List<String>): String? =
+        messages.filter { server != ServerConfig.HYPIXEL || it != lastChat }.randomOrNull()
+
     fun shouldSend(server: ServerConfig?, message: String, now: Long): Boolean {
         val previous = lastEventAt
         lastEventAt = now

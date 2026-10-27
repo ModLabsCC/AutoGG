@@ -25,12 +25,13 @@ class Autogg : ClientModInitializer {
 
     lateinit var client: ClientWrapper
     lateinit var detector: EventDetector
+    lateinit var settings: AutoGgSettings
     private val guard = AutoGgGuard()
 
     override fun onInitializeClient() {
         client = ClientWrapper()
         detector = EventDetector()
-        val settings = AutoGgSettings(FabricLoader.getInstance().configDir.resolve("autogg-message.txt"))
+        settings = AutoGgSettings(FabricLoader.getInstance().configDir.resolve("autogg.json"))
 
         ClientCommandRegistrationCallback.EVENT.register { dispatcher, _ ->
             dispatcher.register(literal("autogg")
@@ -58,8 +59,11 @@ class Autogg : ClientModInitializer {
         ClientReceiveMessageEvents.GAME.register { message, _overlay ->
             val event = detector.scanForEvent(message.string) ?: return@register
             if (event == cc.modlabs.autogg.chat.Event.END_GAME) {
-                if (guard.shouldSend(client.getCurrentServer(), settings.message, System.nanoTime() / 1_000_000)) {
-                    if (client.sendMessage(settings.message)) guard.sent(settings.message)
+                val server = client.getCurrentServer()
+                val messages = settings.messagesFor(client.serverAddress)
+                val selected = guard.chooseMessage(server, messages)
+                if (guard.shouldSend(server, selected ?: messages.first(), System.nanoTime() / 1_000_000) && selected != null) {
+                    if (client.sendMessage(selected)) guard.sent(selected)
                 }
             }
         }

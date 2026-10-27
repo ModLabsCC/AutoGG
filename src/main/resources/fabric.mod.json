@@ -18,6 +18,9 @@
   "entrypoints": {
     "client": [
       "cc.modlabs.autogg.Autogg"
+    ],
+    "modmenu": [
+      "cc.modlabs.autogg.AutoGgModMenu"
     ]
   },
   "depends": {

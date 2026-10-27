@@ -4,12 +4,13 @@ import net.minecraft.client.Minecraft
 
 class ClientWrapper {
     private val client: Minecraft = Minecraft.getInstance()
+    val serverAddress: String? get() = client.currentServer?.ip
 
     fun getCurrentServer(): ServerConfig? {
-        val address = client.currentServer?.ip ?: return null
+        val address = serverAddress ?: return null
 
         for (server in ServerConfig.entries) {
-            if (address.contains(server.ip)) return server
+            if (server.matches(address)) return server
         }
         return null
     }

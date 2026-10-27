@@ -5,5 +5,10 @@ enum class ServerConfig(val ip: String) {
     BEDWARS_PRACTICE("bedwarspractice.club"),
     PVPLAND("pvp.land"),
     MINEMEN("minemen.club"),
-    MINEPLEX("mineplex.com")
+    MINEPLEX("mineplex.com");
+
+    fun matches(address: String): Boolean {
+        val host = address.lowercase().substringBefore(':').trimEnd('.')
+        return host == ip || host.endsWith(".$ip")
+    }
 }
