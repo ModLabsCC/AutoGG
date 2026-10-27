@@ -12,3 +12,7 @@ Use `/autogg <message>` in game to replace the default list with one message, or
 On Hypixel, Auto GG avoids repeating the last sent chat message when a different configured message is available. Otherwise it skips sending until another chat message is sent, reducing duplicate-message warnings.
 
 Overrides do not add game-end detection: Auto GG only sends on the supported servers listed above. Adding an override for another server, such as `modlabs.cc`, stores the messages but does not enable game-end detection there.
+
+## Publishing
+
+Add a `MODRINTH_TOKEN` GitHub Actions secret containing a Modrinth personal access token with permission to create versions for Auto GG. In GitHub Actions, run **Publish to Modrinth** on `main` and enter a unique version number, such as `2026.10.27` or `2026.10.27-1`. The workflow builds and tests the mod before publishing through Gradle Minotaur. The selected version is also written into the mod's metadata; local builds still use the current UTC date by default.
