@@ -4,7 +4,7 @@ import java.util.*
 
 plugins {
     id("com.modrinth.minotaur") version "2.+"
-    id("net.fabricmc.fabric-loom") version "1.15.5"
+    id("net.fabricmc.fabric-loom")
     val kotlin_version: String by System.getProperties()
     kotlin("jvm").version(kotlin_version)
     id("maven-publish")
