@@ -10,7 +10,7 @@ plugins {
     id("maven-publish")
 }
 
-val modVersion: String = Calendar.getInstance(TimeZone.getTimeZone("UTC")).run {
+val modVersion: String = providers.gradleProperty("mod_version").orNull ?: Calendar.getInstance(TimeZone.getTimeZone("UTC")).run {
     "${get(Calendar.YEAR)}.${get(Calendar.MONTH) + 1}.${get(Calendar.DAY_OF_MONTH)}"
 }
 
