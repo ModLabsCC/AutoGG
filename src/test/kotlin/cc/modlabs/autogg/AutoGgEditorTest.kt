@@ -125,4 +125,44 @@ class AutoGgEditorTest {
         assertFailsWith<IllegalArgumentException> { parseTriggers("A||B") }
         assertFailsWith<IllegalArgumentException> { parseTriggers("A\\") }
     }
+    @Test
+    fun `switching hostnames preserves each unsaved draft and mode`() {
+        val settings = settings()
+        val editor = AutoGgConfigEditor(settings)
+        editor.messages = "draft default"
+        editor.load("example.net")
+        editor.toggleMessages()
+        editor.toggleTriggers()
+        editor.messages = "draft message"
+        editor.triggers = "Draft marker"
+        editor.load("another.net")
+        editor.toggleTriggers()
+        editor.triggers = "Another draft"
+        editor.load("EXAMPLE.NET.")
+        assertTrue(editor.customMessages)
+        assertTrue(editor.customTriggers)
+        assertEquals("draft message", editor.messages)
+        assertEquals("Draft marker", editor.triggers)
+        editor.load("another.net")
+        assertEquals("Another draft", editor.triggers)
+        editor.load("")
+        assertEquals("draft default", editor.messages)
+        assertEquals("gg", settings.message)
+        assertNull(settings.triggersFor("example.net"))
+    }
+
+    @Test
+    fun `returning to inherited drafts refreshes the parent preview`() {
+        val settings = settings()
+        settings.saveServerConfig("example.net", null, listOf("Original"))
+        val editor = AutoGgConfigEditor(settings)
+        editor.load("play.example.net")
+        editor.load("example.net")
+        editor.triggers = "Updated"
+        editor.save("example.net")
+        editor.load("play.example.net")
+        assertFalse(editor.customTriggers)
+        assertEquals("Updated", editor.triggers)
+    }
+
 }

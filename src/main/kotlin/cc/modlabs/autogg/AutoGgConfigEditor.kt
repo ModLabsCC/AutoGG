@@ -5,6 +5,8 @@ import cc.modlabs.autogg.chat.EventDetector
 /** Unsaved editor state, separate from Minecraft widgets so scope and save behavior can be tested. */
 internal class AutoGgConfigEditor(private val settings: AutoGgSettings) {
     private val detector = EventDetector()
+    private data class Draft(val messages: String, val triggers: String, val customMessages: Boolean, val customTriggers: Boolean)
+    private val drafts = mutableMapOf<String, Draft>()
     var server = ""
         private set
     var messages = formatMessages(settings.defaultMessages)
@@ -17,19 +19,23 @@ internal class AutoGgConfigEditor(private val settings: AutoGgSettings) {
 
     fun load(hostname: String) {
         val name = key(hostname)
+        drafts[server] = Draft(messages, triggers, customMessages, customTriggers)
         server = name
-        customMessages = isDefault || settings.overrides.containsKey(name)
-        customTriggers = !isDefault && settings.triggerOverrides.containsKey(name)
-        messages = formatMessages(settings.messagesFor(name))
-        triggers = if (isDefault) "" else formatTriggers(settings.triggersFor(name) ?: builtInTriggers())
+        val draft = drafts[name]
+        customMessages = draft?.customMessages ?: (isDefault || settings.overrides.containsKey(name))
+        customTriggers = draft?.customTriggers ?: (!isDefault && settings.triggerOverrides.containsKey(name))
+        messages = if (customMessages) draft?.messages ?: formatMessages(settings.messagesFor(name)) else inheritedMessages()
+        triggers = when {
+            isDefault -> ""
+            customTriggers -> draft?.triggers ?: formatTriggers(settings.triggersFor(name) ?: emptyList())
+            else -> formatTriggers(inheritedTriggers() ?: builtInTriggers())
+        }
     }
 
     fun toggleMessages() {
         require(!isDefault) { "Default messages cannot inherit from another setting." }
         customMessages = !customMessages
-        if (!customMessages) messages = formatMessages(
-            matchingOverride(server, settings.overrides - server) ?: settings.defaultMessages
-        )
+        if (!customMessages) messages = inheritedMessages()
     }
 
     fun toggleTriggers() {
@@ -58,6 +64,7 @@ internal class AutoGgConfigEditor(private val settings: AutoGgSettings) {
         else -> "No detection configured. Customize and enter real server end text."
     }
 
+    private fun inheritedMessages(): String = formatMessages(matchingOverride(server, settings.overrides - server) ?: settings.defaultMessages)
     private fun inheritedTriggers(): List<String>? = matchingOverride(server, settings.triggerOverrides - server)
     private fun builtInTriggers(): List<String> = detector.builtInTriggers(ServerConfig.entries.firstOrNull { it.matches(server) })
     private fun key(hostname: String): String = if (hostname.isBlank()) "" else normalizeServer(hostname)

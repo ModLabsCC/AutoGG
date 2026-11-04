@@ -54,8 +54,7 @@ private class AutoGgConfigScreen(private val parent: Screen, settings: AutoGgSet
             status = editor.detectionDescription()
         }.bounds(x + 153, 68, 147, 20).build())
 
-        values = addRenderableWidget(EditBox(font, x, 106, 300, 20, Component.literal("Configured values, separated by pipes")))
-        values.setMaxLength(8192)
+        values = addRenderableWidget(configureConfigValueField(EditBox(font, x, 106, 300, 20, Component.literal("Configured values, separated by pipes"))))
         values.setResponder { value ->
             if (!refreshing) {
                 if (showTriggers) editor.triggers = value else editor.messages = value
