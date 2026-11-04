@@ -1,6 +1,5 @@
 package cc.modlabs.autogg.chat
 
-import cc.modlabs.autogg.Autogg
 import cc.modlabs.autogg.ServerConfig
 
 class EventDetector {
@@ -69,8 +68,14 @@ class EventDetector {
         serverMessageEvents[ServerConfig.MINEPLEX] = mineplex
     }
 
-    fun scanForEvent(message: String): Event? {
-        val serverConfig: ServerConfig = Autogg.INSTANCE.client.getCurrentServer() ?: return null
+    fun builtInTriggers(server: ServerConfig?): List<String> =
+        serverMessageEvents[server]?.keys?.toList() ?: emptyList()
+
+    fun scanForEvent(message: String, server: ServerConfig?, customTriggers: List<String>? = null): Event? {
+        if (customTriggers != null) {
+            return if (customTriggers.any(message::contains)) Event.END_GAME else null
+        }
+        val serverConfig = server ?: return null
 
         if (serverConfig === ServerConfig.MINEPLEX) {
             if (message.contains("You have been sent from ") && message.contains(" to Lobby")) {
@@ -98,7 +103,9 @@ class EventDetector {
         return null
     }
 
-    companion object {
-        var mineplexStart: Boolean = false
+    private var mineplexStart = false
+
+    fun reset() {
+        mineplexStart = false
     }
 }
