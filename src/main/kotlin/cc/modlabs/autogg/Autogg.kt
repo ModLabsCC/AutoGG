@@ -57,9 +57,9 @@ class Autogg : ClientModInitializer {
         ClientSendMessageEvents.CHAT.register { message -> guard.sent(message) }
 
         ClientReceiveMessageEvents.GAME.register { message, _overlay ->
-            val event = detector.scanForEvent(message.string) ?: return@register
+            val server = client.getCurrentServer()
+            val event = detector.scanForEvent(message.string, server, settings.triggersFor(client.serverAddress)) ?: return@register
             if (event == cc.modlabs.autogg.chat.Event.END_GAME) {
-                val server = client.getCurrentServer()
                 val messages = settings.messagesFor(client.serverAddress)
                 val selected = guard.chooseMessage(server, messages)
                 if (guard.shouldSend(server, selected ?: messages.first(), System.nanoTime() / 1_000_000) && selected != null) {
@@ -70,9 +70,7 @@ class Autogg : ClientModInitializer {
 
         ClientPlayConnectionEvents.DISCONNECT.register(ClientPlayConnectionEvents.Disconnect { _, _ ->
             guard.reset()
-            if (client.getCurrentServer() == ServerConfig.MINEPLEX) {
-                EventDetector.mineplexStart = false
-            }
+            detector.reset()
         })
     }
 }

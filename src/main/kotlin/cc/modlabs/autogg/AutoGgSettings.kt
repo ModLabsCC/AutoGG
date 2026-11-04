@@ -14,6 +14,8 @@ class AutoGgSettings(private val path: Path) {
         private set
     var overrides: Map<String, List<String>> = emptyMap()
         private set
+    var triggerOverrides: Map<String, List<String>> = emptyMap()
+        private set
     val message: String get() = defaultMessages.first()
     private var loadFailed = false
 
@@ -25,10 +27,17 @@ class AutoGgSettings(private val path: Path) {
                 val servers = json.getAsJsonObject("servers").entrySet().associate { entry ->
                     normalizeServer(entry.key) to entry.value.asJsonArray.map { it.asString }
                 }
+                val triggers = if (json.has("triggers")) {
+                    json.getAsJsonObject("triggers").entrySet().associate { entry ->
+                        normalizeServer(entry.key) to entry.value.asJsonArray.map { it.asString }
+                    }
+                } else emptyMap()
+                triggers.values.forEach(::validateTriggers)
                 validateMessages(defaults)
                 servers.values.forEach(::validateMessages)
                 defaultMessages = defaults
                 overrides = servers
+                triggerOverrides = triggers
             } else {
                 val legacy = path.resolveSibling("autogg-message.txt")
                 if (Files.exists(legacy)) {
@@ -43,18 +52,17 @@ class AutoGgSettings(private val path: Path) {
         }
     }
 
-    fun messagesFor(address: String?): List<String> {
-        val host = address?.lowercase()?.substringBefore(':')?.trimEnd('.') ?: return defaultMessages
-        return overrides.entries.filter { (server, _) -> host == server || host.endsWith(".$server") }
-            .maxByOrNull { it.key.length }?.value ?: defaultMessages
-    }
+    fun messagesFor(address: String?): List<String> =
+        matchingOverride(address, overrides) ?: defaultMessages
+
+    fun triggersFor(address: String?): List<String>? = matchingOverride(address, triggerOverrides)
 
     fun save(value: String) = saveDefaults(listOf(value))
 
     fun saveDefaults(messages: List<String>) {
         val cleaned = messages.map(String::trim)
         validateMessages(cleaned)
-        write(cleaned, overrides)
+        write(cleaned, overrides, triggerOverrides)
         defaultMessages = cleaned
     }
 
@@ -64,16 +72,32 @@ class AutoGgSettings(private val path: Path) {
         if (cleaned.isNotEmpty()) validateMessages(cleaned)
         val updated = overrides.toMutableMap()
         if (cleaned.isEmpty()) updated.remove(name) else updated[name] = cleaned
-        write(defaultMessages, updated)
+        write(defaultMessages, updated, triggerOverrides)
         overrides = updated
     }
 
-    private fun write(defaults: List<String>, servers: Map<String, List<String>>) {
+    /** Null removes that field's override; an empty trigger list explicitly disables detection. */
+    fun saveServerConfig(server: String, messages: List<String>?, triggers: List<String>?) {
+        val name = normalizeServer(server)
+        val cleaned = messages?.map(String::trim)
+        cleaned?.let(::validateMessages)
+        triggers?.let(::validateTriggers)
+        val updatedMessages = overrides.toMutableMap()
+        val updatedTriggers = triggerOverrides.toMutableMap()
+        if (cleaned == null) updatedMessages.remove(name) else updatedMessages[name] = cleaned
+        if (triggers == null) updatedTriggers.remove(name) else updatedTriggers[name] = triggers.toList()
+        write(defaultMessages, updatedMessages, updatedTriggers)
+        overrides = updatedMessages
+        triggerOverrides = updatedTriggers
+    }
+
+    private fun write(defaults: List<String>, servers: Map<String, List<String>>, triggers: Map<String, List<String>>) {
         if (loadFailed) throw IOException("Existing AutoGG settings could not be read; they were not overwritten.")
         val json = JsonObject()
         val gson = com.google.gson.GsonBuilder().setPrettyPrinting().create()
         json.add("default", gson.toJsonTree(defaults))
         json.add("servers", gson.toJsonTree(servers))
+        json.add("triggers", gson.toJsonTree(triggers))
         Files.createDirectories(path.parent)
         val temporary = Files.createTempFile(path.parent, "autogg-", ".tmp")
         try {
@@ -94,11 +118,23 @@ class AutoGgSettings(private val path: Path) {
         }) { "Each message must be 1-256 characters, without commands or control characters." }
     }
 
-    private fun normalizeServer(server: String): String {
-        val normalized = server.trim().lowercase().trimEnd('.')
-        require(normalized.length <= 253 && normalized.split('.').all { it.matches(Regex("[a-z0-9]+(?:[a-z0-9-]*[a-z0-9])?")) }) {
-            "Enter a server hostname without a port."
-        }
-        return normalized
+    private fun validateTriggers(triggers: List<String>) {
+        require(triggers.all { value ->
+            value.isNotBlank() && value.length <= 1024 && value.none { it < ' ' || it == '\u007f' || it == '\u00a7' }
+        }) { "Each trigger must be 1-1024 characters, without control or formatting characters." }
     }
+}
+
+internal fun matchingOverride(address: String?, values: Map<String, List<String>>): List<String>? {
+    val host = address?.lowercase()?.substringBefore(':')?.trimEnd('.') ?: return null
+    return values.entries.filter { (server, _) -> host == server || host.endsWith(".$server") }
+        .maxByOrNull { it.key.length }?.value
+}
+
+internal fun normalizeServer(server: String): String {
+    val normalized = server.trim().lowercase().trimEnd('.')
+    require(normalized.length <= 253 && normalized.split('.').all { it.matches(Regex("[a-z0-9]+(?:[a-z0-9-]*[a-z0-9])?")) }) {
+        "Enter a server hostname without a port."
+    }
+    return normalized
 }

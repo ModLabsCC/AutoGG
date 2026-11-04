@@ -2,6 +2,7 @@ package cc.modlabs.autogg
 
 import java.nio.file.Files
 import java.io.IOException
+import com.google.gson.JsonParser
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -100,4 +101,15 @@ class AutoGgTest {
         assertFailsWith<IOException> { settings.save("nice") }
         assertEquals("{ broken", Files.readString(path))
     }
+    @Test
+    fun `message changes preserve stored trigger configuration`() {
+        val path = Files.createTempDirectory("autogg-triggers").resolve("autogg.json")
+        Files.writeString(path, """{"default":["gg"],"servers":{"example.net":["well played"]},"triggers":{"example.net":["Fixture end marker"]}}""")
+        val settings = AutoGgSettings(path)
+        settings.save("new default")
+        val saved = JsonParser.parseString(Files.readString(path)).asJsonObject
+        assertEquals("Fixture end marker", saved.getAsJsonObject("triggers")?.getAsJsonArray("example.net")?.get(0)?.asString)
+        assertEquals(listOf("well played"), AutoGgSettings(path).messagesFor("example.net"))
+    }
+
 }
